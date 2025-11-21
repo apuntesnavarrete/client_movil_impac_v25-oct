@@ -126,20 +126,19 @@ console.log("TRABAJOS:", trabajosPreparados);
   function accion(tipo: 'R' | 'P' | 'G', partido: Partido) {
     if (tipo === 'R') iniciarEdicion(partido);
 
-    if (tipo === 'P') {
-      // Here you can use React Navigation to navigate to "Planteles" screen
-      Alert.alert('Navigate', `Go for match ${partido.id}`);
-router.push({
+  if (tipo === 'P') {
+  const equipos = [partido.equipo1, partido.equipo2].join(',');
+
+  router.push({
     pathname: "/Planteles",
-    params: { partidoId: partido.id }
+    params: { 
+      team: equipos,          // send both teams
+      partidoId: partido.id,  // match id
+      torneoId: partido.torneoId
+    }
   });
 
-/*
-      router.push({
-    pathname: "/Planteles",
-    params: { partidoId: partido.id }
-  });
-*/
+
     }
 
     if (tipo === 'G') {
