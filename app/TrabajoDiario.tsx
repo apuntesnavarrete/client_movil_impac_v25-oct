@@ -7,6 +7,7 @@ import { Picker } from '@react-native-picker/picker';
 import { API_URL } from '../src/config/config';
 import { fetchWithToken } from "../src/utils/fetchWithToken";
 import { useRouter } from 'expo-router';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 interface Partido {
   torneoId: number;
@@ -60,7 +61,6 @@ export default function TrabajoDiario() {
         let partidosFiltrados = data;
         console.log("revisar data")
 
-        console.log(data)
         if (usuario === 'pro') {
           partidosFiltrados = partidosFiltrados.filter(p => [43, 39].includes(p.torneoId));
         } else if (usuario === 'ed') {
@@ -76,7 +76,6 @@ export default function TrabajoDiario() {
           desempate: p.desempate ?? '',
           editando: false,
         }));
-console.log("TRABAJOS:", trabajosPreparados);
 
         setTrabajos(trabajosPreparados);
         setLoading(false);
@@ -142,9 +141,22 @@ console.log("TRABAJOS:", trabajosPreparados);
     }
 
     if (tipo === 'G') {
-      // React Navigation to "Goles" screen
-      Alert.alert('Navigate', `Go to Goles for match ${partido.id}`);
+        const equipos = [partido.equipo1, partido.equipo2].join(',');
+
+       router.push({
+    pathname: "/Goles",
+    params: { 
+            team: equipos,          // send both teams
+
+      partidoId: partido.id,  // match id
+      torneoId: partido.torneoId
     }
+  });
+
+
+    }
+
+     
   }
 
   function guardarEnServidor() {
@@ -175,50 +187,90 @@ console.log("TRABAJOS:", trabajosPreparados);
     // Navigate to login screen if using React Navigation
   }
 
-  return (
-    <View style={{ flex: 1, padding: 10 }}>
-      <Button title="Logout" onPress={logout} />
+ return (
+    <SafeAreaView style={styles.safe}>
+      <View style={styles.container}>
+        <Button title="Logout" onPress={logout} />
 
-      <Text style={{ fontSize: 20, marginVertical: 10 }}>
-        Trabajo del día: {diaSeleccionado.charAt(0).toUpperCase() + diaSeleccionado.slice(1)}
-      </Text>
+        <Text style={styles.title}>
+          Trabajo del día: {diaSeleccionado.charAt(0).toUpperCase() + diaSeleccionado.slice(1)}
+        </Text>
 
-      <Picker
-        selectedValue={diaSeleccionado}
-        onValueChange={setDiaSeleccionado}
-        style={{ height: 50, width: 200 }}
-      >
-        {diasDisponibles.map(d => (
-          <Picker.Item key={d} label={d.charAt(0).toUpperCase() + d.slice(1)} value={d} />
-        ))}
-      </Picker>
+        <Picker
+          selectedValue={diaSeleccionado}
+          onValueChange={setDiaSeleccionado}
+          style={styles.picker}
+        >
+          {diasDisponibles.map(d => (
+            <Picker.Item key={d} label={d.charAt(0).toUpperCase() + d.slice(1)} value={d} />
+          ))}
+        </Picker>
 
-      <View style={{ flexDirection: 'row', marginVertical: 10, justifyContent: 'space-between' }}>
-        <Button title="Guardar en servidor" onPress={guardarEnServidor} />
-        {/* Download JSON not typical in RN, can implement using filesystem modules */}
+        <View style={styles.actions}>
+          <Button title="Guardar en servidor" onPress={guardarEnServidor} />
+        </View>
+
+        {loading ? (
+          <Text>Loading...</Text>
+        ) : trabajos.length === 0 ? (
+          <Text>No hay trabajo programado para este día.</Text>
+        ) : (
+          <FlatList
+            contentContainerStyle={styles.listContent}
+            data={trabajos}
+            keyExtractor={item => item.id.toString()}
+            renderItem={({ item }) => (
+              <PartidoItem
+                partido={item}
+                onSave={guardarGoles}
+                onEdit={iniciarEdicion}
+                onNavigate={accion}
+              />
+            )}
+          />
+        )}
+
+        <View style={styles.footerInfo}>
+          <Text style={styles.footerTitle}>Descripción de los botones</Text>
+          <Text>R → resultados</Text>
+          <Text>P → agregar planteles</Text>
+          <Text>G → agregar goles</Text>
+        </View>
       </View>
-
-      {loading ? (
-        <Text>Loading...</Text>
-      ) : trabajos.length === 0 ? (
-        <Text>No hay trabajo programado para este día.</Text>
-      ) : (
-        
-        <FlatList
-          data={trabajos}
-          keyExtractor={item => item.id.toString()}
-          renderItem={({ item }) => (
-            <PartidoItem partido={item} onSave={guardarGoles} onEdit={iniciarEdicion} onNavigate={accion} />
-          )}
-        />
-      )}
-
-      <View style={{ marginTop: 20 }}>
-        <Text style={{ fontWeight: 'bold' }}>Descripción de los botones</Text>
-        <Text>R → resultados (editar goles del partido)</Text>
-        <Text>P → agregar planteles (ver planteles del partido)</Text>
-        <Text>G → agregar goles (ver o agregar detalles de goles)</Text>
-      </View>
-    </View>
+    </SafeAreaView>
   );
 }
+
+const styles = StyleSheet.create({
+  safe: {
+    flex: 1,
+    backgroundColor: '#fff' // helps avoid color bleed behind system bars
+  },
+  container: {
+    flex: 1,
+    paddingHorizontal: 12,
+    paddingBottom: 12
+  },
+  title: {
+    fontSize: 20,
+    marginVertical: 10
+  },
+  picker: {
+    height: 50,
+    width: 200
+  },
+  actions: {
+    flexDirection: 'row',
+    marginVertical: 10,
+    justifyContent: 'space-between'
+  },
+  listContent: {
+    paddingBottom: 80 // prevents last item from being hidden behind bottom bar
+  },
+  footerInfo: {
+    marginTop: 20
+  },
+  footerTitle: {
+    fontWeight: 'bold'
+  }
+});
